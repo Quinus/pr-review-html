@@ -1,0 +1,5 @@
+{"title":"Add multiplication and move constants","reviewer":"agent-review","comments":[
+ {"file":"calc.py","line":3,"label":"blocking","body":"`add` now subtracts: `add(2, 3)` returns `-1`. Every caller that sums totals breaks silently.\n\n**Fix:** restore the operator.\n\n```python\nreturn a + b\n```"},
+ {"file":"calc.py","line":6,"label":"question","body":"Is `mul` meant to handle floats as well? There is no test covering it yet."},
+ {"file":"b.js","line":2,"label":"design","body":"Exporting the constant as the default export makes named imports impossible to tree-shake; consider `export const x`."},
+ {"file":"b.js","line":1,"label":"praise","body":"Good call inlining the comment here — the change of value is easy to spot."}]}

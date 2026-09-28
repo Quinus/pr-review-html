@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add multiplication and move constants · Review</title>
+<style>
+:root {
+  --bg:#0d1117; --bg2:#161b22; --bg3:#21262d; --border:#30363d; --border2:#21262d;
+  --fg:#e6edf3; --muted:#8d96a0; --link:#4493f8; --green:#3fb950; --red:#f85149;
+  --add-bg:rgba(46,160,67,.15); --add-ln:rgba(63,185,80,.3); --del-bg:rgba(248,81,73,.1); --del-ln:rgba(248,81,73,.3);
+  --hunk-bg:rgba(56,139,253,.1); --orange:#db6d28; --sticky:56px;
+  --neutral:rgba(110,118,129,.4); --btn-hover:#30363d; --folder:#54aeff; --accent-bg:rgba(56,139,253,.15);
+  --tk-kw:#ff7b72; --tk-str:#a5d6ff; --tk-com:#8b949e; --tk-ann:#d2a8ff; --tk-num:#79c0ff; --tk-typ:#ffa657;
+  --lbl-red:#ff7b72; --lbl-blue:#79c0ff; --lbl-purple:#d2a8ff; --lbl-orange:#ffa657; --lbl-green:#7ee787;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg:#ffffff; --bg2:#f6f8fa; --bg3:#f3f4f6; --border:#d1d9e0; --border2:#e6eaef;
+    --fg:#1f2328; --muted:#59636e; --link:#0969da; --green:#1a7f37; --red:#d1242f;
+    --add-bg:#e6ffec; --add-ln:#ccffd8; --del-bg:#ffebe9; --del-ln:#ffd7d5;
+    --hunk-bg:#ddf4ff; --orange:#bc4c00;
+    --neutral:rgba(175,184,193,.3); --btn-hover:#eaeef2; --folder:#54aeff; --accent-bg:rgba(9,105,218,.1);
+    --tk-kw:#cf222e; --tk-str:#0a3069; --tk-com:#6e7781; --tk-ann:#8250df; --tk-num:#0550ae; --tk-typ:#953800;
+    --lbl-red:#d1242f; --lbl-blue:#0969da; --lbl-purple:#8250df; --lbl-orange:#bc4c00; --lbl-green:#1a7f37;
+    color-scheme:light;
+  }
+}
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif; -webkit-text-size-adjust:100%; }
+a { color:var(--link); text-decoration:none; } a:hover { text-decoration:underline; }
+button { font:inherit; color:inherit; }
+code { font:12px ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace; background:var(--neutral); padding:.15em .4em; border-radius:6px; }
+.i { width:16px; height:16px; flex:none; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; vertical-align:-3px; }
+.ico { width:15px; height:15px; }
+.ico-folder { color:var(--folder); fill:rgba(84,174,255,.25); }
+.ico-file { color:var(--muted); }
+.tw .i, .chev .i { width:14px; height:14px; vertical-align:middle; }
+.state .i, .tab .i { vertical-align:-3px; }
+.tab .i { color:var(--muted); } .tab.active .i { color:var(--fg); }
+.btn .i { width:14px; height:14px; vertical-align:-2px; }
+.file-comments, .tree-c { display:inline-flex; align-items:center; gap:3px; }
+.file-comments .i, .tree-c .i { width:13px; height:13px; }
+.muted { color:var(--muted); } .right { margin-left:auto; }
+.wrap { max-width:1280px; margin:0 auto; padding:24px; }
+h1.pr-title { font-size:28px; font-weight:400; margin:0 0 8px; line-height:1.25; }
+.pr-meta { display:flex; align-items:center; gap:8px; color:var(--muted); flex-wrap:wrap; }
+.state { background:#238636; color:#fff; border-radius:2em; padding:4px 12px; font-weight:500; white-space:nowrap; display:inline-flex; align-items:center; gap:6px; }
+.branch { background:var(--accent-bg); color:var(--link); padding:2px 6px; border-radius:6px; font:12px ui-monospace,Menlo,monospace; word-break:break-all; }
+.tabbar { position:sticky; top:0; z-index:5; background:var(--bg); display:flex; align-items:flex-end; gap:8px; border-bottom:1px solid var(--border); margin-top:16px; }
+.tabs { display:flex; gap:4px; overflow-x:auto; scrollbar-width:none; }
+.tab { padding:8px 14px; cursor:pointer; color:var(--muted); border:1px solid transparent; border-bottom:none; border-radius:6px 6px 0 0; margin-bottom:-1px; background:none; display:flex; gap:6px; align-items:center; white-space:nowrap; }
+.tab.active { color:var(--fg); background:var(--bg); border-color:var(--border); }
+.counter { background:var(--neutral); border-radius:2em; padding:0 6px; font-size:12px; }
+.diffstat { margin-left:auto; align-self:center; font-size:12px; white-space:nowrap; padding-bottom:4px; }
+.add { color:var(--green); } .del { color:var(--red); }
+.panel { display:none; padding-top:24px; } .panel.active { display:block; }
+/* conversation */
+.timeline { position:relative; }
+.timeline::before { content:""; position:absolute; left:19px; top:0; bottom:0; width:2px; background:var(--border2); }
+.timeline-item { position:relative; display:flex; align-items:center; gap:10px; padding:8px 0 8px 8px; font-size:13px; }
+.timeline-item .avatar { width:24px; height:24px; font-size:11px; }
+.commit-msg { color:var(--fg); min-width:0; } .sha { margin-left:auto; background:none; color:var(--muted); }
+.avatar { width:40px; height:40px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-weight:600; color:#fff; flex:none; position:relative; z-index:1; }
+.av-author { background:linear-gradient(135deg,#1f6feb,#8957e5); }
+.av-bot { background:linear-gradient(135deg,#d97757,#b04a2f); }
+.comment-head .avatar { width:20px; height:20px; font-size:10px; }
+.md { padding:16px; overflow-wrap:anywhere; } .md p { margin:0 0 12px; } .md p:last-child { margin:0; }
+.md h3 { font-size:15px; margin:18px 0 6px; padding-bottom:4px; border-bottom:1px solid var(--border2); }
+.md ul { margin:0 0 8px; padding-left:24px; } .md li { margin:4px 0; }
+.lbl { border-radius:2em; padding:0 8px; font-size:12px; font-weight:500; border:1px solid; line-height:20px; white-space:nowrap; }
+.lbl-red { color:var(--lbl-red); border-color:rgba(248,81,73,.6); background:rgba(248,81,73,.15); }
+.lbl-blue { color:var(--lbl-blue); border-color:rgba(56,139,253,.6); background:rgba(56,139,253,.15); }
+.lbl-purple { color:var(--lbl-purple); border-color:rgba(163,113,247,.6); background:rgba(163,113,247,.15); }
+.lbl-orange { color:var(--lbl-orange); border-color:rgba(219,109,40,.6); background:rgba(219,109,40,.15); }
+.lbl-gray { color:var(--muted); border-color:var(--border); background:var(--neutral); }
+.lbl-green { color:var(--lbl-green); border-color:rgba(63,185,80,.6); background:rgba(63,185,80,.15); }
+.btn { background:var(--bg3); border:1px solid var(--border); border-radius:6px; padding:5px 14px; font-weight:500; cursor:pointer; white-space:nowrap; }
+.btn:hover { background:var(--btn-hover); }
+.btn-sm { padding:2px 10px; font-size:12px; }
+/* files changed */
+.files-layout > * { min-width:0; }
+.files-layout { display:grid; grid-template-columns:340px minmax(0,1fr); gap:16px; align-items:start; }
+.tree { position:sticky; top:calc(var(--sticky) + 8px); border:1px solid var(--border); border-radius:6px; padding:6px; max-height:calc(100vh - var(--sticky) - 24px); overflow:auto; font-size:13px; }
+.tree-row { display:flex; align-items:center; gap:4px; width:100%; padding:4px 8px; border-radius:6px; color:var(--fg); background:none; border:none; cursor:pointer; text-align:left; }
+.tree-row:hover { background:var(--bg3); text-decoration:none; }
+.tree-file.active { background:var(--accent-bg); box-shadow:inset 2px 0 0 var(--link); }
+.tw { width:14px; flex:none; color:var(--muted); display:inline-flex; transition:transform .15s; }
+.tree-dir.closed > .tree-folder .tw { transform:rotate(-90deg); }
+.tree-dir.closed > .tree-children { display:none; }
+.tree-folder .tree-name { color:var(--muted); }
+.tree-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; flex:1; }
+.tree-stat { font-size:11px; white-space:nowrap; display:flex; gap:4px; } .tree-c { color:var(--muted); }
+.file-toolbar { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px; color:var(--muted); font-size:13px; flex-wrap:wrap; }
+.tree-toggle { display:none; }
+.file { border:1px solid var(--border); border-radius:6px; margin-bottom:16px; scroll-margin-top:calc(var(--sticky) + 8px); }
+.file-header { position:sticky; top:var(--sticky); z-index:3; background:var(--bg2); padding:8px 12px; display:flex; gap:10px; align-items:center; border-bottom:1px solid var(--border); border-radius:6px 6px 0 0; font-size:12px; min-width:0; }
+.file.collapsed .file-header { border-bottom:none; border-radius:6px; }
+.file-path { font:12px ui-monospace,Menlo,monospace; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:rtl; text-align:left; }
+.file-path .dir { color:var(--muted); }
+.chev { color:var(--muted); cursor:pointer; background:none; border:none; padding:0 2px; display:inline-flex; transition:transform .15s; }
+.file.collapsed .diff-scroll { display:none; } .file.collapsed .chev { transform:rotate(-90deg); }
+.file.flash { animation:flash 1.2s ease-out; }
+@keyframes flash { from { box-shadow:0 0 0 3px rgba(56,139,253,.6); } to { box-shadow:0 0 0 3px rgba(56,139,253,0); } }
+.file-stat { font:12px ui-monospace,Menlo,monospace; display:flex; align-items:center; gap:1px; flex:none; }
+.blk { display:inline-block; width:8px; height:8px; margin-left:1px; } .blk-add { background:var(--green); } .blk-del { background:var(--red); }
+.new-file { color:var(--green); border:1px solid rgba(63,185,80,.5); border-radius:2em; padding:0 6px; flex:none; }
+.file-comments { color:var(--muted); flex:none; }
+.viewed { border:1px solid var(--border); border-radius:6px; padding:2px 8px; color:var(--muted); cursor:pointer; flex:none; display:flex; gap:4px; align-items:center; }
+.diff-scroll { overflow-x:auto; container-type:inline-size; overscroll-behavior-x:contain; }
+table.diff { width:max-content; min-width:100%; border-collapse:collapse; font:12px/20px ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace; }
+.diff td { padding:0 10px; vertical-align:top; }
+.diff td.ln { width:1%; min-width:50px; white-space:nowrap; color:var(--muted); text-align:right; user-select:none; opacity:.8; }
+.diff td.code { white-space:pre; padding-right:24px; }
+.sign { display:inline-block; width:14px; user-select:none; color:var(--muted); }
+.row-add td { background:var(--add-bg); } .row-add td.ln { background:var(--add-ln); }
+.row-del td { background:var(--del-bg); } .row-del td.ln { background:var(--del-ln); }
+.row-add .sign { color:var(--green); } .row-del .sign { color:var(--red); }
+.hunk td { background:var(--hunk-bg); color:var(--muted); padding:4px 10px; white-space:pre; }
+.has-comment td.ln:nth-child(2) { box-shadow:inset -3px 0 0 #d29922; }
+.tk-kw { color:var(--tk-kw); } .tk-str { color:var(--tk-str); } .tk-com { color:var(--tk-com); font-style:italic; }
+.tk-ann { color:var(--tk-ann); } .tk-num { color:var(--tk-num); } .tk-typ { color:var(--tk-typ); }
+.comment-wrap { position:sticky; left:0; width:100cqw; }
+tr.comment-row td { padding:0; background:var(--bg); font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; white-space:normal; word-break:normal; }
+.thread { margin:8px 16px 8px 116px; border:1px solid var(--border); border-radius:6px; background:var(--bg); max-width:860px; scroll-margin-top:calc(var(--sticky) + 56px); }
+.thread-blocking { border-color:rgba(248,81,73,.6); box-shadow:0 0 0 1px rgba(248,81,73,.2); }
+.thread.flash { animation:flash 1.2s ease-out; }
+.comment-head { display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid var(--border2); background:var(--bg2); font-size:13px; flex-wrap:wrap; border-radius:6px 6px 0 0; }
+.thread.resolved .comment-head { border-bottom:none; border-radius:6px; opacity:.7; }
+.thread.resolved .comment-body { display:none; }
+.lineref { font-size:11px; }
+.comment-body.md { padding:12px 16px; }
+.md-code { margin:0 0 12px; padding:10px 12px; background:var(--bg2); border:1px solid var(--border2); border-radius:6px; overflow-x:auto; font:12px/1.5 ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace; white-space:pre; }
+.status-deleted { color:var(--red); border-color:var(--red); }
+/* tablet */
+@media (max-width:1012px) {
+  .files-layout { grid-template-columns:minmax(0,1fr); }
+  .tree-toggle { display:inline-block; }
+  .tree { display:none; position:static; max-height:50vh; margin-bottom:12px; }
+  .files-layout.tree-open .tree { display:block; }
+  .thread { margin-left:16px; }
+}
+/* phone */
+@media (max-width:640px) {
+  :root { --sticky:48px; }
+  .wrap { padding:12px; }
+  h1.pr-title { font-size:20px; }
+  .pr-meta { font-size:13px; }
+  .tab { padding:6px 10px; font-size:13px; }
+  .tab .tab-text { display:none; }
+  .timeline::before { left:15px; }
+  .md { padding:12px; }
+  .hide-sm { display:none; }
+  .diff td.ln { min-width:36px; }
+  .diff td { padding:0 6px; }
+  .diff td.ln:first-child { display:none; }
+  .thread { margin:6px; }
+  tr.comment-row td { padding:0; }
+  .comment-body.md { padding:10px 12px; font-size:13px; }
+  .file-header { padding:6px 8px; gap:6px; }
+  .file-stat .blk { display:none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="pr-title">Add multiplication and move constants</h1>
+  <div class="pr-meta">
+    <span class="state"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7M6 9v12"/></svg> Open</span>
+    <span><strong style="color:var(--fg)">Tester</strong> wants to merge 1 commit into <span class="branch">main</span> from <span class="branch">feature</span></span>
+  </div>
+
+  <div class="tabbar">
+    <div class="tabs">
+      <button class="tab" data-tab="commits"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M3 12h6M15 12h6"/></svg> <span class="tab-text">Commits</span> <span class="counter">1</span></button>
+      <button class="tab active" data-tab="files"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M9 10h6M12 7v6M9 17h6"/></svg> <span class="tab-text">Files changed</span> <span class="counter">4</span></button>
+    </div>
+    <span class="diffstat"><span class="add">+8</span> <span class="del">−4</span></span>
+  </div>
+
+  <section class="panel" id="commits">
+    <div class="timeline"><div class="timeline-item"><span class="avatar av-author">T</span><span class="commit-msg">Change calc and move file</span><code class="sha">6c42944</code></div></div>
+  </section>
+
+  <section class="panel active" id="files">
+    <div class="file-toolbar">
+      <span><button class="btn btn-sm tree-toggle" id="tree-toggle"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg> Files</button> 4 files · 4 comments</span>
+      <button class="btn btn-sm" id="toggle-all">Collapse all</button>
+    </div>
+    <div class="files-layout">
+      <nav class="tree" aria-label="Changed files"><a class="tree-row tree-file" href="#f-a-js" data-target="f-a-js" style="padding-left:6px"><span class="tw"></span><svg class="i ico ico-file" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg><span class="tree-name" title="a.js">a.js</span><span class="tree-stat"><span class="add">+0</span> <span class="del">−1</span></span></a><a class="tree-row tree-file" href="#f-b-js" data-target="f-b-js" style="padding-left:6px"><span class="tw"></span><svg class="i ico ico-file" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg><span class="tree-name" title="b.js">b.js</span><span class="tree-stat"><span class="tree-c"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>2</span><span class="add">+2</span> <span class="del">−0</span></span></a><a class="tree-row tree-file" href="#f-calc-py" data-target="f-calc-py" style="padding-left:6px"><span class="tw"></span><svg class="i ico ico-file" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg><span class="tree-name" title="calc.py">calc.py</span><span class="tree-stat"><span class="tree-c"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>2</span><span class="add">+6</span> <span class="del">−2</span></span></a><a class="tree-row tree-file" href="#f-gone-txt" data-target="f-gone-txt" style="padding-left:6px"><span class="tw"></span><svg class="i ico ico-file" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg><span class="tree-name" title="gone.txt">gone.txt</span><span class="tree-stat"><span class="add">+0</span> <span class="del">−1</span></span></a></nav>
+      <div>
+        
+<div class="file" id="f-a-js">
+  <div class="file-header">
+    <button class="chev" aria-label="Toggle file"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+    <span class="file-stat">1 <span class="blk blk-del"></span><span class="blk blk-del"></span><span class="blk blk-del"></span><span class="blk blk-del"></span><span class="blk blk-del"></span></span>
+    <span class="file-path" title="a.js"><span class="dir"></span>a.js</span>
+    <span class="new-file status-deleted">deleted</span>
+    
+    <label class="viewed right"><input type="checkbox"> <span class="hide-sm">Viewed</span></label>
+  </div>
+  <div class="diff-scroll"><table class="diff"><tr class="hunk"><td class="ln"></td><td class="ln"></td><td class="code">@@ -1 +0,0 @@</td></tr><tr class="row-del"><td class="ln">1</td><td class="ln"></td><td class="code"><span class="sign">-</span><span class="tk-kw">const</span> x = <span class="tk-num">1</span>;</td></tr></table></div>
+</div>
+<div class="file" id="f-b-js">
+  <div class="file-header">
+    <button class="chev" aria-label="Toggle file"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+    <span class="file-stat">2 <span class="blk blk-add"></span><span class="blk blk-add"></span><span class="blk blk-add"></span><span class="blk blk-add"></span><span class="blk blk-add"></span></span>
+    <span class="file-path" title="b.js"><span class="dir"></span>b.js</span>
+    <span class="new-file status-new">new</span>
+    <span class="file-comments"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 2</span>
+    <label class="viewed right"><input type="checkbox"> <span class="hide-sm">Viewed</span></label>
+  </div>
+  <div class="diff-scroll"><table class="diff"><tr class="hunk"><td class="ln"></td><td class="ln"></td><td class="code">@@ -0,0 +1,2 @@</td></tr><tr class="row-add has-comment"><td class="ln"></td><td class="ln">1</td><td class="code"><span class="sign">+</span><span class="tk-kw">const</span> x = <span class="tk-num">2</span>; <span class="tk-com">// changed</span></td></tr>
+<tr class="comment-row"><td colspan="3"><div class="comment-wrap">
+  <div class="thread " id="c-3">
+    <div class="comment-head">
+      <span class="avatar av-bot">A</span>
+      <strong>agent-review</strong> <span class="muted hide-sm">commented on line</span> <code class="lineref">L1</code>
+      <span class="lbl lbl-green">Praise</span>
+      <button class="btn btn-sm right resolve">Resolve</button>
+    </div>
+    <div class="comment-body md"><p>Good call inlining the comment here — the change of value is easy to spot.</p></div>
+  </div>
+</div></td></tr><tr class="row-add has-comment"><td class="ln"></td><td class="ln">2</td><td class="code"><span class="sign">+</span><span class="tk-kw">export</span> <span class="tk-kw">default</span> x;</td></tr>
+<tr class="comment-row"><td colspan="3"><div class="comment-wrap">
+  <div class="thread " id="c-2">
+    <div class="comment-head">
+      <span class="avatar av-bot">A</span>
+      <strong>agent-review</strong> <span class="muted hide-sm">commented on line</span> <code class="lineref">L2</code>
+      <span class="lbl lbl-orange">Design</span>
+      <button class="btn btn-sm right resolve">Resolve</button>
+    </div>
+    <div class="comment-body md"><p>Exporting the constant as the default export makes named imports impossible to tree-shake; consider <code>export const x</code>.</p></div>
+  </div>
+</div></td></tr></table></div>
+</div>
+<div class="file" id="f-calc-py">
+  <div class="file-header">
+    <button class="chev" aria-label="Toggle file"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+    <span class="file-stat">8 <span class="blk blk-add"></span><span class="blk blk-add"></span><span class="blk blk-add"></span><span class="blk blk-add"></span><span class="blk blk-del"></span></span>
+    <span class="file-path" title="calc.py"><span class="dir"></span>calc.py</span>
+    
+    <span class="file-comments"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 2</span>
+    <label class="viewed right"><input type="checkbox"> <span class="hide-sm">Viewed</span></label>
+  </div>
+  <div class="diff-scroll"><table class="diff"><tr class="hunk"><td class="ln"></td><td class="ln"></td><td class="code">@@ -1,3 +1,7 @@</td></tr><tr class="row-ctx"><td class="ln">1</td><td class="ln">1</td><td class="code"><span class="sign"> </span><span class="tk-kw">def</span> add(a, b):</td></tr><tr class="row-del"><td class="ln">2</td><td class="ln"></td><td class="code"><span class="sign">-</span>    <span class="tk-com"># sum</span></td></tr><tr class="row-del"><td class="ln">3</td><td class="ln"></td><td class="code"><span class="sign">-</span>    <span class="tk-kw">return</span> a + b</td></tr><tr class="row-add"><td class="ln"></td><td class="ln">2</td><td class="code"><span class="sign">+</span>    <span class="tk-com"># sum two numbers</span></td></tr><tr class="row-add has-comment"><td class="ln"></td><td class="ln">3</td><td class="code"><span class="sign">+</span>    <span class="tk-kw">return</span> a - b</td></tr>
+<tr class="comment-row"><td colspan="3"><div class="comment-wrap">
+  <div class="thread thread-blocking" id="c-0">
+    <div class="comment-head">
+      <span class="avatar av-bot">A</span>
+      <strong>agent-review</strong> <span class="muted hide-sm">commented on line</span> <code class="lineref">L3</code>
+      <span class="lbl lbl-red">Blocking</span>
+      <button class="btn btn-sm right resolve">Resolve</button>
+    </div>
+    <div class="comment-body md"><p><code>add</code> now subtracts: <code>add(2, 3)</code> returns <code>-1</code>. Every caller that sums totals breaks silently.</p>
+<p><strong>Fix:</strong> restore the operator.</p>
+<pre class="md-code">return a + b</pre></div>
+  </div>
+</div></td></tr><tr class="row-add"><td class="ln"></td><td class="ln">4</td><td class="code"><span class="sign">+</span></td></tr><tr class="row-add"><td class="ln"></td><td class="ln">5</td><td class="code"><span class="sign">+</span></td></tr><tr class="row-add has-comment"><td class="ln"></td><td class="ln">6</td><td class="code"><span class="sign">+</span><span class="tk-kw">def</span> mul(a, b):</td></tr>
+<tr class="comment-row"><td colspan="3"><div class="comment-wrap">
+  <div class="thread " id="c-1">
+    <div class="comment-head">
+      <span class="avatar av-bot">A</span>
+      <strong>agent-review</strong> <span class="muted hide-sm">commented on line</span> <code class="lineref">L6</code>
+      <span class="lbl lbl-purple">Question</span>
+      <button class="btn btn-sm right resolve">Resolve</button>
+    </div>
+    <div class="comment-body md"><p>Is <code>mul</code> meant to handle floats as well? There is no test covering it yet.</p></div>
+  </div>
+</div></td></tr><tr class="row-add"><td class="ln"></td><td class="ln">7</td><td class="code"><span class="sign">+</span>    <span class="tk-kw">return</span> a * b</td></tr></table></div>
+</div>
+<div class="file" id="f-gone-txt">
+  <div class="file-header">
+    <button class="chev" aria-label="Toggle file"><svg class="i " viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+    <span class="file-stat">1 <span class="blk blk-del"></span><span class="blk blk-del"></span><span class="blk blk-del"></span><span class="blk blk-del"></span><span class="blk blk-del"></span></span>
+    <span class="file-path" title="gone.txt"><span class="dir"></span>gone.txt</span>
+    <span class="new-file status-deleted">deleted</span>
+    
+    <label class="viewed right"><input type="checkbox"> <span class="hide-sm">Viewed</span></label>
+  </div>
+  <div class="diff-scroll"><table class="diff"><tr class="hunk"><td class="ln"></td><td class="ln"></td><td class="code">@@ -1 +0,0 @@</td></tr><tr class="row-del"><td class="ln">1</td><td class="ln"></td><td class="code"><span class="sign">-</span>old</td></tr></table></div>
+</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const layout = $('.files-layout');
+const syncSticky = () => document.documentElement.style.setProperty('--sticky', $('.tabbar').offsetHeight + 'px');
+syncSticky();
+addEventListener('resize', syncSticky);
+
+function showTab(name) {
+  $$('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  $$('.panel').forEach(p => p.classList.toggle('active', p.id === name));
+}
+$$('.tab').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
+
+function flash(el) {
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+
+function scrollToTarget(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  showTab('files');
+  const file = el.closest('.file');
+  if (file) file.classList.remove('collapsed');
+  const thread = el.closest('.thread');
+  if (thread) thread.classList.remove('resolved');
+  if (matchMedia('(max-width:1012px)').matches) layout.classList.remove('tree-open');
+  requestAnimationFrame(() => {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    history.replaceState(null, '', '#' + id);
+    flash(el);
+  });
+}
+$$('a[data-target]').forEach(a => a.addEventListener('click', e => {
+  e.preventDefault();
+  scrollToTarget(a.dataset.target);
+}));
+
+$$('.tree-folder').forEach(b => b.addEventListener('click', () => b.parentElement.classList.toggle('closed')));
+$('#tree-toggle').addEventListener('click', () => layout.classList.toggle('tree-open'));
+
+$$('.file .chev').forEach(c => c.addEventListener('click', () => c.closest('.file').classList.toggle('collapsed')));
+$('#toggle-all').addEventListener('click', e => {
+  const collapse = e.target.textContent === 'Collapse all';
+  $$('.file').forEach(f => f.classList.toggle('collapsed', collapse));
+  e.target.textContent = collapse ? 'Expand all' : 'Collapse all';
+});
+$$('.viewed input').forEach(cb => cb.addEventListener('change', () => cb.closest('.file').classList.toggle('collapsed', cb.checked)));
+$$('.resolve').forEach(b => b.addEventListener('click', () => {
+  const t = b.closest('.thread');
+  t.classList.toggle('resolved');
+  b.textContent = t.classList.contains('resolved') ? 'Unresolve' : 'Resolve';
+}));
+
+// highlight the file currently in view in the tree
+const treeLinks = new Map($$('.tree-file').map(a => [a.dataset.target, a]));
+const observer = new IntersectionObserver(entries => {
+  entries.filter(e => e.isIntersecting).forEach(e => {
+    treeLinks.forEach(a => a.classList.remove('active'));
+    treeLinks.get(e.target.id)?.classList.add('active');
+  });
+}, { rootMargin: '-80px 0px -70% 0px' });
+$$('.file').forEach(f => observer.observe(f));
+
+if (location.hash.length > 1) scrollToTarget(location.hash.slice(1));
+</script>
+</body>
+</html>
